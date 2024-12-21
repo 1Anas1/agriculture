@@ -1,30 +1,13 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import { useSelector } from 'react-redux';
-import { Redirect } from 'react-router-dom';
+import { Redirect, Route } from 'react-router-dom';
+import { useAuth } from '../../provider/AuthProvider';
 
-// project imports
-import config from '../../config';
+export const GuestGuard = ({ children }) => {
+    const { token } = useAuth();
 
-//-----------------------|| GUEST GUARD ||-----------------------//
-
-/**
- * Guest guard for routes having no auth required
- * @param {PropTypes.node} children children element/node
- */
-const GuestGuard = ({ children }) => {
-    const account = useSelector((state) => state.account);
-    const { isLoggedIn } = account;
-
-    if (isLoggedIn) {
-        return <Redirect to={config.defaultPath} />;
+    if (token) {
+        return <Redirect to="/dashboard/default" />;
     }
 
     return children;
 };
-
-GuestGuard.propTypes = {
-    children: PropTypes.node
-};
-
-export default GuestGuard;

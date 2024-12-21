@@ -21,6 +21,7 @@ def register_user(data):
 def login_user(data):
     user = User.find_user_by_email(data['email'])
 
+    # Use `check_password_hash` to compare the hashed password and the input password
     if user and check_password_hash(user['password'], data['password']):
         token = create_access_token(identity=str(user['_id']), expires_delta=timedelta(days=1))
         return jsonify({"token": token}), 200

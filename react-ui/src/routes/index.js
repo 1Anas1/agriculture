@@ -8,24 +8,27 @@ import AuthenticationRoutes from './AuthenticationRoutes';
 
 // project imports
 import config from './../config';
+import { AuthProvider } from './../provider/AuthProvider';
 
 //-----------------------|| ROUTING RENDER ||-----------------------//
 
 const Routes = () => {
     return (
-        <Switch>
-            <Redirect exact from="/" to={config.defaultPath} />
-            <React.Fragment>
-                {/* Routes for authentication pages */}
-                <AuthenticationRoutes />
+        <AuthProvider>
+            <Switch>
+                <Redirect exact from="/" to={config.defaultPath} />
+                <React.Fragment>
+                    {/* Routes for authentication pages */}
+                    <AuthenticationRoutes />
 
-                {/* Route for login */}
-                <LoginRoutes />
+                    {/* Route for login */}
+                    <LoginRoutes />
 
-                {/* Routes for main layouts */}
-                <MainRoutes />
-            </React.Fragment>
-        </Switch>
+                    {/* Routes for main layouts */}
+                    <MainRoutes />
+                </React.Fragment>
+            </Switch>
+        </AuthProvider>
     );
 };
 

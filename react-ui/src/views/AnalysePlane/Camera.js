@@ -1,17 +1,34 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 
 // material-ui
-import { Grid, Button, Typography } from '@material-ui/core';
+import { Grid, Button, Typography, Card, CardMedia, CircularProgress } from '@material-ui/core';
+import { makeStyles } from '@material-ui/styles';
 
-// project imports
-import MainCard from './../../ui-component/cards/MainCard';
-import { gridSpacing } from './../../store/constant';
-
-//-----------------------|| CAMERA COMPONENT - TAKE PHOTO ||-----------------------//
+// Custom styles
+const useStyles = makeStyles((theme) => ({
+    media: {
+        borderRadius: theme.shape.borderRadius,
+        maxWidth: '100%',
+        maxHeight: '300px',
+        border: `2px solid ${theme.palette.primary.main}`
+    },
+    buttonContainer: {
+        marginTop: theme.spacing(2)
+    },
+    message: {
+        marginTop: theme.spacing(2),
+        textAlign: 'center',
+        fontWeight: 'bold',
+        color: theme.palette.primary.main
+    }
+}));
 
 const Camera = ({ isLoading }) => {
+    const classes = useStyles();
+
     const [photo, setPhoto] = useState(null);
+    const [isSending, setIsSending] = useState(false);
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
 
@@ -27,62 +44,125 @@ const Camera = ({ isLoading }) => {
         }
     };
 
+    // Stop the camera
+    const stopCamera = () => {
+        if (videoRef.current?.srcObject) {
+            const tracks = videoRef.current.srcObject.getTracks();
+            tracks.forEach((track) => track.stop());
+        }
+    };
+
+    // Automatically start the camera when the component mounts
+    useEffect(() => {
+        startCamera();
+        return () => stopCamera(); // Cleanup on unmount
+    }, []);
+
     // Take a photo
     const takePhoto = () => {
         if (videoRef.current && canvasRef.current) {
             const context = canvasRef.current.getContext('2d');
-            canvasRef.current.width = videoRef.current.videoWidth;
-            canvasRef.current.height = videoRef.current.videoHeight;
-            context.drawImage(videoRef.current, 0, 0, videoRef.current.videoWidth, videoRef.current.videoHeight);
+            canvasRef.current.width = 300; // Resize width
+            canvasRef.current.height = 300; // Resize height
+            context.drawImage(videoRef.current, 0, 0, 300, 300);
 
             // Get photo as a data URL
-            const imageDataUrl = canvasRef.current.toDataURL('image/png');
+            const imageDataUrl = canvasRef.current.toDataURL('image/jpeg', 0.7); // Reduce quality to 70%
             setPhoto(imageDataUrl);
+
+            // Stop the camera after capturing the photo
+            stopCamera();
         }
+    };
+
+    // Send photo with geolocation
+    const sendPhoto = async () => {
+        if (!photo) return;
+        setIsSending(true);
+        try {
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                const { latitude, longitude } = position.coords;
+
+                const response = await fetch('http://localhost:5000/api/photo', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        photo,
+                        location: { latitude, longitude }
+                    })
+                });
+
+                if (response.ok) {
+                    alert('Photo sent successfully!');
+                } else {
+                    alert('Failed to send photo.');
+                }
+            });
+        } catch (error) {
+            console.error('Error sending photo:', error);
+        } finally {
+            setIsSending(false);
+        }
+    };
+
+    // Reset to retake the photo
+    const retakePhoto = () => {
+        setPhoto(null);
+        startCamera();
     };
 
     return (
         <React.Fragment>
             {isLoading ? (
-                <Typography variant="subtitle2">Loading...</Typography>
+                <CircularProgress />
             ) : (
-                <MainCard>
-                    <Grid container spacing={gridSpacing}>
+                <Card>
+                    <Grid container spacing={3} justifyContent="center" alignItems="center">
                         <Grid item xs={12}>
                             <Typography variant="h5" align="center">
-                                Camera Capture
+                                Capture and Send Photo
                             </Typography>
                         </Grid>
                         <Grid item xs={12}>
-                            {/* Video Stream */}
-                            <video ref={videoRef} autoPlay style={{ width: '100%', maxHeight: '400px' }} />
-                        </Grid>
-                        <Grid item xs={12}>
-                            {/* Canvas for Capturing Photo */}
+                            {photo ? (
+                                <CardMedia component="img" image={photo} alt="Captured" className={classes.media} />
+                            ) : (
+                                <video ref={videoRef} autoPlay className={classes.media} />
+                            )}
                             <canvas ref={canvasRef} style={{ display: 'none' }} />
                         </Grid>
-                        <Grid item xs={12} container justifyContent="center" spacing={2}>
-                            <Grid item>
-                                <Button variant="contained" color="primary" onClick={startCamera}>
-                                    Start Camera
-                                </Button>
-                            </Grid>
-                            <Grid item>
-                                <Button variant="contained" color="secondary" onClick={takePhoto}>
-                                    Take Photo
-                                </Button>
-                            </Grid>
+                        <Grid item xs={12} container justifyContent="center" spacing={2} className={classes.buttonContainer}>
+                            {!photo && (
+                                <Grid item>
+                                    <Button
+                                        variant="contained"
+                                        color="secondary"
+                                        onClick={takePhoto}
+                                        disabled={videoRef.current?.srcObject}
+                                    >
+                                        Take Photo
+                                    </Button>
+                                </Grid>
+                            )}
+                            {photo && (
+                                <>
+                                    <Grid item>
+                                        <Button variant="contained" color="primary" onClick={sendPhoto} disabled={isSending}>
+                                            {isSending ? 'Sending...' : 'Send Photo'}
+                                        </Button>
+                                    </Grid>
+                                    <Grid item>
+                                        <Button variant="contained" color="secondary" onClick={retakePhoto}>
+                                            Retake Photo
+                                        </Button>
+                                    </Grid>
+                                </>
+                            )}
                         </Grid>
-                        {photo && (
-                            <Grid item xs={12}>
-                                <Typography variant="h6" align="center">
-                                    Captured Photo:
-                                </Typography>
-                                <img src={photo} alt="Captured" style={{ width: '100%', maxHeight: '400px' }} />
-                            </Grid>
-                        )}
                     </Grid>
-                </MainCard>
+                </Card>
             )}
         </React.Fragment>
     );

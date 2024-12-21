@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 
@@ -24,7 +24,6 @@ import {
 // third party
 import * as Yup from 'yup';
 import { Formik } from 'formik';
-import axios from 'axios';
 
 // project imports
 import useScriptRef from '../../../../hooks/useScriptRef';
@@ -34,6 +33,7 @@ import AnimateButton from '../../../../ui-component/extended/AnimateButton';
 import Visibility from '@material-ui/icons/Visibility';
 import VisibilityOff from '@material-ui/icons/VisibilityOff';
 import Google from './../../../../assets/images/icons/social-google.svg';
+import { useAuth } from '../../../../provider/AuthProvider'; // Adjusted import path
 
 // style constant
 const useStyles = makeStyles((theme) => ({
@@ -74,26 +74,25 @@ const useStyles = makeStyles((theme) => ({
     }
 }));
 
-//============================|| FIREBASE - LOGIN ||============================//
-
 const FirebaseLogin = (props, { ...others }) => {
     const classes = useStyles();
-
     const customization = useSelector((state) => state.customization);
     const scriptedRef = useScriptRef();
     const [checked, setChecked] = React.useState(true);
-
-    const googleHandler = async () => {
-        console.error('Login');
-    };
-
+    const { login } = useAuth();
+    const [message, setMessage] = useState('');
     const [showPassword, setShowPassword] = React.useState(false);
+
     const handleClickShowPassword = () => {
         setShowPassword(!showPassword);
     };
 
     const handleMouseDownPassword = (event) => {
         event.preventDefault();
+    };
+
+    const googleHandler = async () => {
+        console.error('Login with Google not implemented');
     };
 
     return (
@@ -103,7 +102,7 @@ const FirebaseLogin = (props, { ...others }) => {
                     <AnimateButton>
                         <Button
                             disableElevation
-                            fullWidth={true}
+                            fullWidth
                             className={classes.redButton}
                             onClick={googleHandler}
                             size="large"
@@ -114,12 +113,7 @@ const FirebaseLogin = (props, { ...others }) => {
                     </AnimateButton>
                 </Grid>
                 <Grid item xs={12}>
-                    <Box
-                        sx={{
-                            alignItems: 'center',
-                            display: 'flex'
-                        }}
-                    >
+                    <Box sx={{ alignItems: 'center', display: 'flex' }}>
                         <Divider className={classes.signDivider} orientation="horizontal" />
                         <AnimateButton>
                             <Button
@@ -136,11 +130,7 @@ const FirebaseLogin = (props, { ...others }) => {
                     </Box>
                 </Grid>
                 <Grid item xs={12} container alignItems="center" justifyContent="center">
-                    <Box
-                        sx={{
-                            mb: 2
-                        }}
-                    >
+                    <Box sx={{ mb: 2 }}>
                         <Typography variant="subtitle1">Sign in with Email address</Typography>
                     </Box>
                 </Grid>
@@ -148,8 +138,8 @@ const FirebaseLogin = (props, { ...others }) => {
 
             <Formik
                 initialValues={{
-                    email: 'info@codedthemes.com',
-                    password: '123456',
+                    email: '',
+                    password: '',
                     submit: null
                 }}
                 validationSchema={Yup.object().shape({
@@ -157,29 +147,20 @@ const FirebaseLogin = (props, { ...others }) => {
                     password: Yup.string().max(255).required('Password is required')
                 })}
                 onSubmit={async (values, { setErrors, setStatus, setSubmitting }) => {
-                    axios
-                        .post('https://api-server-nodejs.appseed.us/api/users/login', {
-                            firstName: 'Fred',
-                            lastName: 'Flintstone'
-                        })
-                        .then(function (response) {
-                            console.log(response);
-                        })
-                        .catch(function (error) {
-                            console.log(error);
-                        });
                     try {
-                        if (scriptedRef.current) {
+                        const result = await login(values.email, values.password);
+                        if (result.success) {
+                            setMessage('Login successful');
                             setStatus({ success: true });
-                            setSubmitting(false);
+                        } else {
+                            setMessage(result.message);
+                            setErrors({ submit: result.message });
                         }
                     } catch (err) {
                         console.error(err);
-                        if (scriptedRef.current) {
-                            setStatus({ success: false });
-                            setErrors({ submit: err.message });
-                            setSubmitting(false);
-                        }
+                        setErrors({ submit: err.message });
+                    } finally {
+                        setSubmitting(false);
                     }
                 }}
             >
@@ -195,16 +176,10 @@ const FirebaseLogin = (props, { ...others }) => {
                                 onBlur={handleBlur}
                                 onChange={handleChange}
                                 label="Email Address / Username"
-                                inputProps={{
-                                    classes: {
-                                        notchedOutline: classes.notchedOutline
-                                    }
-                                }}
                             />
                             {touched.email && errors.email && (
                                 <FormHelperText error id="standard-weight-helper-text-email-login">
-                                    {' '}
-                                    {errors.email}{' '}
+                                    {errors.email}
                                 </FormHelperText>
                             )}
                         </FormControl>
@@ -231,19 +206,14 @@ const FirebaseLogin = (props, { ...others }) => {
                                     </InputAdornment>
                                 }
                                 label="Password"
-                                inputProps={{
-                                    classes: {
-                                        notchedOutline: classes.notchedOutline
-                                    }
-                                }}
                             />
                             {touched.password && errors.password && (
                                 <FormHelperText error id="standard-weight-helper-text-password-login">
-                                    {' '}
-                                    {errors.password}{' '}
+                                    {errors.password}
                                 </FormHelperText>
                             )}
                         </FormControl>
+
                         <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
                             <FormControlLabel
                                 control={
@@ -259,28 +229,21 @@ const FirebaseLogin = (props, { ...others }) => {
                             <Typography
                                 variant="subtitle1"
                                 component={Link}
-                                to={props.login ? '/pages/forgot-password/forgot-password' + props.login : '#'}
+                                to="/pages/forgot-password"
                                 color="secondary"
                                 sx={{ textDecoration: 'none' }}
                             >
                                 Forgot Password?
                             </Typography>
                         </Stack>
+
                         {errors.submit && (
-                            <Box
-                                sx={{
-                                    mt: 3
-                                }}
-                            >
+                            <Box sx={{ mt: 3 }}>
                                 <FormHelperText error>{errors.submit}</FormHelperText>
                             </Box>
                         )}
 
-                        <Box
-                            sx={{
-                                mt: 2
-                            }}
-                        >
+                        <Box sx={{ mt: 2 }}>
                             <AnimateButton>
                                 <Button
                                     disableElevation
@@ -295,6 +258,11 @@ const FirebaseLogin = (props, { ...others }) => {
                                 </Button>
                             </AnimateButton>
                         </Box>
+                        {message && (
+                            <Typography variant="body2" color="textSecondary" align="center" sx={{ mt: 2 }}>
+                                {message}
+                            </Typography>
+                        )}
                     </form>
                 )}
             </Formik>
