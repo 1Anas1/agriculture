@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, Typography, CircularProgress } from '@material-ui/core';
 import { makeStyles } from '@material-ui/styles';
-import { Map, GoogleApiWrapper, Marker } from 'google-maps-react';
+import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
 
 // Custom styles
 const useStyles = makeStyles((theme) => ({
@@ -20,7 +20,7 @@ const useStyles = makeStyles((theme) => ({
     }
 }));
 
-const PlantDetails = ({ google }) => {
+const PlantDetails = () => {
     const classes = useStyles();
     const { id } = useParams();
 
@@ -60,6 +60,11 @@ const PlantDetails = ({ google }) => {
         return <CircularProgress />;
     }
 
+    const containerStyle = {
+        width: '100%',
+        height: '300px'
+    };
+
     return (
         <Card className={classes.card}>
             <Typography variant="h5" className={classes.details}>
@@ -73,32 +78,24 @@ const PlantDetails = ({ google }) => {
                     <Typography variant="body1">Next Check Date: {plant.nextCheckDate}</Typography>
 
                     <div className={classes.map}>
-                        <Map
-                            google={google}
-                            zoom={13}
-                            initialCenter={{
-                                lat: plant.location.lat,
-                                lng: plant.location.lng
-                            }}
-                            style={{ height: '100%', width: '100%' }}
-                        >
-                            <Marker
-                                position={{
-                                    lat: plant.location.lat,
-                                    lng: plant.location.lng
-                                }}
-                                title={plant.name}
-                            />
-                            {userLocation && (
-                                <Marker
-                                    position={userLocation}
-                                    title="Your Location"
-                                    icon={{
-                                        url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
-                                    }}
-                                />
-                            )}
-                        </Map>
+                        <LoadScript googleMapsApiKey="YOUR_GOOGLE_MAPS_API_KEY">
+                            <GoogleMap
+                                mapContainerStyle={containerStyle}
+                                center={{ lat: plant.location.lat, lng: plant.location.lng }}
+                                zoom={13}
+                            >
+                                <Marker position={{ lat: plant.location.lat, lng: plant.location.lng }} title={plant.name} />
+                                {userLocation && (
+                                    <Marker
+                                        position={userLocation}
+                                        title="Your Location"
+                                        icon={{
+                                            url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                                        }}
+                                    />
+                                )}
+                            </GoogleMap>
+                        </LoadScript>
                     </div>
                 </>
             ) : (
@@ -108,6 +105,4 @@ const PlantDetails = ({ google }) => {
     );
 };
 
-export default GoogleApiWrapper({
-    apiKey: 'YOUR_GOOGLE_MAPS_API_KEY' // Replace with your Google Maps API Key
-})(PlantDetails);
+export default PlantDetails;

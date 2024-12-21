@@ -25,7 +25,7 @@ import {
 // third party
 import * as Yup from 'yup';
 import { Formik } from 'formik';
-import axios from 'axios';
+import axios from '../../../../api/config';
 
 // project imports
 import useScriptRef from '../../../../hooks/useScriptRef';
@@ -123,7 +123,7 @@ const RestRegister = ({ ...others }) => {
                 onSubmit={(values, { setErrors, setStatus, setSubmitting }) => {
                     try {
                         axios
-                            .post( configData.API_SERVER + 'users/register', {
+                            .post('auth/register', {
                                 username: values.username,
                                 password: values.password,
                                 email: values.email
