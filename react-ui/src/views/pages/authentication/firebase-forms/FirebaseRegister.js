@@ -31,7 +31,7 @@ import useScriptRef from '../../../../hooks/useScriptRef';
 import Google from './../../../../assets/images/icons/social-google.svg';
 import AnimateButton from './../../../../ui-component/extended/AnimateButton';
 import { strengthColor, strengthIndicator } from '../../../../utils/password-strength';
-
+import { useAuth } from '../../../../provider/AuthProvider'; // Adjusted import path
 // assets
 import Visibility from '@material-ui/icons/Visibility';
 import VisibilityOff from '@material-ui/icons/VisibilityOff';
@@ -80,6 +80,7 @@ const useStyles = makeStyles((theme) => ({
 const FirebaseRegister = ({ ...others }) => {
     const classes = useStyles();
     const scriptedRef = useScriptRef();
+    const { register } = useAuth();
     const matchDownSM = useMediaQuery((theme) => theme.breakpoints.down('sm'));
     const customization = useSelector((state) => state.customization);
     const [showPassword, setShowPassword] = React.useState(false);

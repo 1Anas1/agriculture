@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import axios from './../../api/config';
 
 // material-ui
 import { Grid, Button, Typography, Card, CardMedia, CircularProgress } from '@material-ui/core';
@@ -75,33 +76,29 @@ const Camera = ({ isLoading }) => {
         }
     };
 
-    // Send photo with geolocation
+    // Send photo as base64
     const sendPhoto = async () => {
         if (!photo) return;
         setIsSending(true);
         try {
-            navigator.geolocation.getCurrentPosition(async (position) => {
-                const { latitude, longitude } = position.coords;
+            // Prepare data
+            const payload = {
+                image_base64: photo
+            };
 
-                const response = await fetch('http://localhost:5000/api/photo', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        photo,
-                        location: { latitude, longitude }
-                    })
-                });
-
-                if (response.ok) {
-                    alert('Photo sent successfully!');
-                } else {
-                    alert('Failed to send photo.');
-                }
+            // Send data using axios
+            const response = await axios.post('/plants/detect-disease', payload, {
+                headers: { 'Content-Type': 'application/json' }
             });
+
+            if (response.status === 200) {
+                alert('Photo sent successfully!');
+            } else {
+                alert('Failed to send photo.');
+            }
         } catch (error) {
             console.error('Error sending photo:', error);
+            alert('Error occurred while sending the photo.');
         } finally {
             setIsSending(false);
         }
