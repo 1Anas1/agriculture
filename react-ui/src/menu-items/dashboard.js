@@ -21,6 +21,14 @@ export const dashboard = {
             url: '/dashboard/default',
             icon: icons['IconDashboard'],
             breadcrumbs: false
+        },
+        {
+            id: 'AnalysePlane',
+            title: 'AnalysePlane',
+            type: 'item',
+            url: '/AnalysePlane',
+            icon: icons['IconDashboard'],
+            breadcrumbs: false
         }
     ]
 };

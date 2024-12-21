@@ -178,21 +178,30 @@ class EditUser(Resource):
 @rest_api.route('/api/users/logout')
 class LogoutUser(Resource):
     """
-       Logs out User using 'logout_model' input
+       Logs out User by revoking the current JWT token
     """
 
     @token_required
     def post(self, current_user):
 
-        _jwt_token = request.headers["authorization"]
+        # Extract the JWT token from the headers
+        _jwt_token = request.headers.get("authorization")
 
-        jwt_block = JWTTokenBlocklist(jwt_token=_jwt_token, created_at=datetime.now(timezone.utc))
-        jwt_block.save()
+        if not _jwt_token:
+            return {"success": False, "msg": "Authorization token is missing."}, 400
 
-        self.set_jwt_auth_active(False)
-        self.save()
+        # Save the token to the blocklist
+        try:
+            jwt_block = JWTTokenBlocklist(jwt_token=_jwt_token, created_at=datetime.now(timezone.utc))
+            jwt_block.save()
 
-        return {"success": True}, 200
+            # Deactivate JWT authentication for the current user
+            current_user.set_jwt_auth_active(False)
+            current_user.save()
+
+            return {"success": True, "msg": "User logged out successfully."}, 200
+        except Exception as e:
+            return {"success": False, "msg": f"An error occurred: {str(e)}"}, 500
 
 
 @rest_api.route('/api/sessions/oauth/github/')

@@ -8,7 +8,7 @@ import AuthGuard from './../utils/route-guard/AuthGuard';
 
 // dashboard routing
 const DashboardDefault = Loadable(lazy(() => import('../views/dashboard/Default')));
-
+const AnalysePlane = Loadable(lazy(() => import('../views/AnalysePlane/AnalysePlane')));
 // utilities routing
 const UtilsTypography = Loadable(lazy(() => import('../views/utilities/Typography')));
 const UtilsColor = Loadable(lazy(() => import('../views/utilities/Color')));
@@ -28,7 +28,7 @@ const MainRoutes = () => {
         <Route
             path={[
                 '/dashboard/default',
-
+                '/AnalysePlane',
                 '/utils/util-typography',
                 '/utils/util-color',
                 '/utils/util-shadow',
@@ -42,7 +42,7 @@ const MainRoutes = () => {
                 <Switch location={location} key={location.pathname}>
                     <AuthGuard>
                         <Route path="/dashboard/default" component={DashboardDefault} />
-
+                        <Route path="/AnalysePlane" component={AnalysePlane} />
                         <Route path="/utils/util-typography" component={UtilsTypography} />
                         <Route path="/utils/util-color" component={UtilsColor} />
                         <Route path="/utils/util-shadow" component={UtilsShadow} />
