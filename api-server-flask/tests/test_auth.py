@@ -1,38 +1,61 @@
 import unittest
-from app import create_app
+import json
+from app import create_app, mongo
+from flask_bcrypt import generate_password_hash
 from app.utils.db import get_collection
 
 class AuthTestCase(unittest.TestCase):
     def setUp(self):
-        self.app = create_app()
-        self.app.config['TESTING'] = True
-        self.app.config['MONGO_URI'] = "mongodb://localhost:27017/test_database"  # Use a test database
+        self.app = create_app(config_class='app.config.TestingConfig')
         self.client = self.app.test_client()
+        self.ctx = self.app.app_context()
+        self.ctx.push()
 
-        # Use the application context
+        # Clear database and set up users collection
         with self.app.app_context():
             self.users = get_collection('users')
-            self.users.delete_many({})  # Clear test data
+            self.users.delete_many({})
+
+    def tearDown(self):
+        mongo.cx.close()
+        self.ctx.pop()
 
     def test_register_user(self):
-        response = self.client.post('/auth/register', json={
-            "name": "Test User",
-            "email": "test@example.com",
-            "password": "password123"
-        })
-        self.assertEqual(response.status_code, 201)
-        self.assertIn("User registered successfully", response.json['message'])
+        # Load test data
+        with open('tests/data/auth_test_data.json') as f:
+            test_data = json.load(f)
+
+        data = test_data['register_user']['input']
+        expected_status = test_data['register_user']['expected_status_code']
+        expected_message = test_data['register_user']['expected_message']
+
+        # Make API call
+        response = self.client.post('/auth/register', json=data)
+
+        # Assertions
+        self.assertEqual(response.status_code, expected_status)
+        self.assertIn(expected_message, response.json['message'])
 
     def test_login_user(self):
-        # First, register a user
-        self.users.insert_one({
-            "name": "Test User",
-            "email": "test@example.com",
-            "password": "hashed_password"
-        })
-        response = self.client.post('/auth/login', json={
-            "email": "test@example.com",
-            "password": "hashed_password"
-        })
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("token", response.json)
+        # Load test data
+        with open('tests/data/auth_test_data.json') as f:
+            test_data = json.load(f)
+
+        # Insert user into database
+        with self.app.app_context():
+            self.users.insert_one({
+                "name": "Test User",
+                "email": "test@example.com",
+                "password": generate_password_hash("password123").decode('utf-8')
+            })
+
+        data = test_data['login_user']['input']
+        expected_status = test_data['login_user']['expected_status_code']
+        expected_token_key = test_data['login_user']['expected_token_key']
+
+        # Make API call
+        response = self.client.post('/auth/login', json=data)
+
+        # Assertions
+        self.assertEqual(response.status_code, expected_status)
+        self.assertIn(expected_token_key, response.json)

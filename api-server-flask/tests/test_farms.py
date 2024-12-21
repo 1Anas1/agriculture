@@ -1,28 +1,56 @@
 import unittest
-from app import create_app
 from app.utils.db import get_collection
+from app.config import TestingConfig
+import json
+from app import create_app, mongo
+
 
 class FarmsTestCase(unittest.TestCase):
     def setUp(self):
-        self.app = create_app()
+        # Initialize the app with the testing configuration
+        self.app = create_app(config_class=TestingConfig)
         self.client = self.app.test_client()
-        self.farms = get_collection('farms')
-        self.farms.delete_many({})
+        self.ctx = self.app.app_context()
+        self.ctx.push()
+
+        # Seed test data
+        with self.app.app_context():
+            self.farms = get_collection('farms')
+            self.farms.delete_many({})  # Clear existing test data
+            self.farms.insert_many([
+    {
+        "_id": "farm1",
+        "name": "Farm 1",
+        "location": {"coordinates": [34.052235, -118.243683]}  # Los Angeles
+    },
+    {
+        "_id": "farm2",
+        "name": "Farm 2",
+        "location": {"coordinates": [34.052245, -118.243693]}  # Nearby Los Angeles
+    },
+    {
+        "_id": "farm3",
+        "name": "Farm 3",
+        "location": {"coordinates": [36.778259, -119.417931]}  # Fresno (far away)
+    }
+]
+
+)
+
+    def tearDown(self):
+        # Clean up after the test
+        with self.app.app_context():
+            self.farms.delete_many({})  # Clear test data
+        mongo.cx.close()
+        self.ctx.pop()
 
     def test_check_nearby_farms(self):
-        farm_id = self.farms.insert_one({
-            "user_id": "123",
-            "location": {"type": "Point", "coordinates": [12.34, 56.78]},
-            "plants": []
-        }).inserted_id
-
-        # Insert another farm nearby
-        self.farms.insert_one({
-            "user_id": "456",
-            "location": {"type": "Point", "coordinates": [12.35, 56.79]},
-            "plants": []
-        })
-
-        response = self.client.get(f'/farms/{farm_id}/check-nearby-diseases?radius_km=5')
+    # Test case: Farm 1 with a 5 km radius
+        response = self.client.get('/farms/farm1/check-nearby-diseases?radius_km=5')
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(len(response.json['farms']) > 0)
+
+        data = response.json
+        self.assertEqual(len(data['farms']), 1)  
+        farm_names = [farm['name'] for farm in data['farms']]
+        self.assertIn("Farm 2", farm_names)
+        self.assertNotIn("Farm 3", farm_names) 

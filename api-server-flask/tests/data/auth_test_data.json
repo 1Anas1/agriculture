@@ -1,0 +1,19 @@
+{
+  "register_user": {
+    "input": {
+      "name": "Test User",
+      "email": "test@example.com",
+      "password": "password123"
+    },
+    "expected_status_code": 201,
+    "expected_message": "User registered successfully"
+  },
+  "login_user": {
+    "input": {
+      "email": "test@example.com",
+      "password": "password123"
+    },
+    "expected_status_code": 200,
+    "expected_token_key": "token"
+  }
+}

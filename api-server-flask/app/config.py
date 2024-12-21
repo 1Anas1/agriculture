@@ -7,3 +7,6 @@ class Config:
 
 class ProductionConfig(Config):
     DEBUG = False
+class TestingConfig(Config):
+    TESTING = True
+    MONGO_URI = "mongodb://localhost:27017/test_database"

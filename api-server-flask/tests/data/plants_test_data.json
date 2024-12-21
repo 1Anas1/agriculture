@@ -1,0 +1,11 @@
+{
+  "detect_disease": {
+    "input": {
+      "plant_id": "12345678901",
+      "image_url": "http://example.com/image.jpg",
+      "disease_name": "Blight"
+    },
+    "expected_status_code": 200,
+    "expected_disease_name": "Blight"
+  }
+}

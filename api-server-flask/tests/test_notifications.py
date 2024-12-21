@@ -1,13 +1,17 @@
 import unittest
 from app import create_app
 from app.utils.db import get_collection
-
+from app.config import TestingConfig
 class NotificationsTestCase(unittest.TestCase):
+    
     def setUp(self):
-        self.app = create_app()
+        self.app = create_app(config_class=TestingConfig)  # Use TestingConfig
         self.client = self.app.test_client()
-        self.notifications = get_collection('notifications')
-        self.notifications.delete_many({})
+
+        with self.app.app_context():
+            self.notifications = get_collection('notifications')
+            self.notifications.delete_many({})  # Clear test data
+
 
     def test_fetch_notifications(self):
         user_id = "123"
